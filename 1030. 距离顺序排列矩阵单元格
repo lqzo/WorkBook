@@ -1,0 +1,147 @@
+# 1030. 距离顺序排列矩阵单元格
+
+### [LeetCode - 1030. 距离顺序排列矩阵单元格](https://leetcode-cn.com/problems/matrix-cells-in-distance-order/)
+### 题目
+给出 R 行 C 列的矩阵，其中的单元格的整数坐标为 (r, c)，满足 0 <= r < R 且 0 <= c < C。
+
+
+另外，我们在该矩阵中给出了一个坐标为 (r0, c0) 的单元格。
+
+
+返回矩阵中的所有单元格的坐标，并按到 (r0, c0) 的距离从最小到最大的顺序排，其中，两单元格(r1, c1) 和 (r2, c2) 之间的距离是曼哈顿距离，|r1 - r2| + |c1 - c2|。（你可以按任何满足此条件的顺序返回答案。）
+
+
+#### 示例1：
+```
+输入：R = 1, C = 2, r0 = 0, c0 = 0
+输出：[[0,0],[0,1]]
+解释：从 (r0, c0) 到其他单元格的距离为：[0,1]
+```
+#### 示例2：
+```
+输入：R = 2, C = 2, r0 = 0, c0 = 1
+输出：[[0,1],[0,0],[1,1],[1,0]]
+解释：从 (r0, c0) 到其他单元格的距离为：[0,1,1,2]
+[[0,1],[1,1],[0,0],[1,0]] 也会被视作正确答案。
+```
+#### 示例3：
+```
+输入：R = 2, C = 3, r0 = 1, c0 = 2
+输出：[[1,2],[0,2],[1,1],[0,1],[1,0],[0,0]]
+解释：从 (r0, c0) 到其他单元格的距离为：[0,1,1,2,2,3]
+其他满足题目要求的答案也会被视为正确，例如 [[1,2],[1,1],[0,2],[1,0],[0,1],[0,0]]。
+```
+#### 注意：
+
+1. 1 <= R <= 100
+1. 1 <= C <= 100
+1. 0 <= r0 < R
+1. 0 <= c0 < C
+### 解题思路
+#### 1. 直接排序
+
+1. 存储矩阵内所有的点
+1. 将其按照哈曼顿距离直接排序
+```javascript
+/**
+ * @param {number} R
+ * @param {number} C
+ * @param {number} r0
+ * @param {number} c0
+ * @return {number[][]}
+ */
+var allCellsDistOrder = function(R, C, r0, c0) {
+    // 存储矩阵内所有的点
+    const res = []
+    for (let i = 0; i < R; i++) {
+        for (let j = 0; j < C; j++) {
+            res.push([i, j])
+        }
+    }
+    // 获取曼哈顿距离
+    function getD(x1, y1) {
+        return Math.abs(x1 - r0) + Math.abs(y1 - c0)
+    }
+    // 排序并返回
+    return res.sort((a, b) => getD(a[0], a[1]) - getD(b[0], b[1]))
+};
+```
+#### 2. 桶排序
+
+1. 在枚举所有点时按照曼哈顿距离进行分桶排序
+1. 使用 flat 打平
+```javascript
+/**
+ * @param {number} R
+ * @param {number} C
+ * @param {number} r0
+ * @param {number} c0
+ * @return {number[][]}
+ */
+var allCellsDistOrder = function(R, C, r0, c0) {
+    // 按照曼哈顿距离进行分桶排序存放
+    const res = []
+    for (let i = 0; i < R; i++) {
+        for (let j = 0; j < C; j++) {
+            // 获取当前点的曼哈顿距离
+            const distances = getD(i, j)
+            // 已存在桶, 放入
+            if (res[distances]) res[distances].push([i, j])
+            // 未存在此桶则创建
+            else res[distances] = [[i, j]]
+        }
+    }
+    // 获取曼哈顿距离
+    function getD(x1, y1) {
+        return Math.abs(x1 - r0) + Math.abs(y1 - c0)
+    }
+    // 排序并返回
+    return res.flat()
+};
+```
+#### 3. BFS / 几何法
+
+1. 存储矩阵内所有的点，并将 (r0, c0) 之外的点标记为未访问
+1. 将 (r0, c0) 放入栈中开始迭代，将其出栈放入排序结果数组 res ，入栈其四方未被访问的单元格
+1. 循环以上操作，直到栈中元素被清空，此时矩阵中所有单元格均被访问，且按照曼哈顿距离排入 res
+
+
+
+![1.png](https://cdn.nlark.com/yuque/0/2020/png/342443/1605604397987-ab04c677-5557-4a96-9cf4-e79579beedf1.png#align=left&display=inline&height=1125&margin=%5Bobject%20Object%5D&name=1.png&originHeight=1125&originWidth=1630&size=170110&status=done&style=none&width=1630)
+```javascript
+/**
+ * @param {number} R
+ * @param {number} C
+ * @param {number} r0
+ * @param {number} c0
+ * @return {number[][]}
+ */
+var allCellsDistOrder = function (R, C, r0, c0) {
+    const res = []
+    // 存储所有点的访问状态
+    const visited = new Array(R).fill(0).map(e=>new Array(C).fill(false))
+    // 入栈起始点, 并变更起始点访问状态
+    const q = [[r0, c0]]
+    visited[r0][c0] = true
+    // 单元格四方位置的坐标差
+    const dirs = [[1, 0], [-1, 0], [0, -1], [0, 1]]
+    // 入栈顺序导致栈顶必然是当前最小距离单元格
+    while (q.length) {
+        // 取出栈顶, 获取其坐标
+        const cur = q.shift()
+        const x = cur[0], y = cur[1]
+        res.push(cur)
+        // 获取栈顶单元格四方的单元格
+        for (let i = 0; i < 4; i++) {
+            // 四方单元格的坐标位置
+            let newX = dirs[i][0] + x, newY = dirs[i][1] + y
+            // 若四方单元格在矩阵中切未访问过就入栈, 同时标记未已访问
+            if (newX < R && newX >= 0 && newY >= 0 && newY < C && !visited[newX][newY]) {
+                q.push([newX, newY])
+                visited[newX][newY] = true
+            }
+        }
+    }
+    return res
+};
+```
